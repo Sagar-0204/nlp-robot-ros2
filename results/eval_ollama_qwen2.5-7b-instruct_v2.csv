@@ -1,0 +1,27 @@
+command,expected,correct,attempts,latency_s,plan,reply
+"go to the red box, then come back",navigate_to:red_box; return_to_start:,1,1,7.899,navigate_to:red_box; return_to_start:,"Going to the red box, then returning."
+drive over to the kitchen,navigate_to:kitchen,1,1,4.252,navigate_to:kitchen,Driving to the kitchen.
+head to the dock,navigate_to:home,1,1,4.219,navigate_to:home,Heading to the starting dock.
+could you please go to the storage bay?,navigate_to:storage,1,1,4.493,navigate_to:storage,Navigating to the storage bay.
+take a look in the nook,navigate_to:reading_nook,1,1,4.87,navigate_to:reading_nook,Navigating to the reading nook.
+find the blue box,find:blue_box,0,1,6.943,find:blue_box; navigate_to:blue_box,Searching for the blue box and going to it.
+where is the yellow cube? go there,navigate_to:yellow_box,1,1,7.134,find:yellow_box; navigate_to:yellow_box,Searching for the yellow box and going there.
+find the green box and go to it,navigate_to:green_box,1,1,7.161,find:green_box; navigate_to:green_box,Finding the green box and navigating to it.
+turn left,rotate:90,1,1,4.45,rotate:90.0,Turning left 90 degrees.
+turn right by 45 degrees,rotate:-45,1,1,4.779,rotate:-45.0,Turning right 45 degrees.
+do a full turn,rotate:360,1,1,4.944,rotate:360.0,Turning in place 360 degrees.
+turn around and go back 30 cm,rotate:180; move:-0.3,1,1,7.487,rotate:180.0; move:-0.3,Turning around and backing up 0.3 m.
+move forward one metre,move:1.0,1,1,4.69,move:1.0,Moving forward 1.0 m.
+"back up a little, half a meter",move:-0.5,1,1,4.959,move:-0.5,Backing up 0.5 m.
+wait five seconds then go home,wait:5; navigate_to:home,1,1,6.505,wait:5.0; navigate_to:home,Waiting for 5 seconds then driving to the home.
+"go to the office, wait 2 seconds, then come back",navigate_to:office; wait:2; return_to_start:,1,1,7.943,navigate_to:office; wait:2.0; return_to_start:,"Going to the office, waiting, then returning."
+visit the red box and then the green box,navigate_to:red_box; navigate_to:green_box,1,1,7.587,navigate_to:red_box; navigate_to:green_box,Visiting the red box and then searching for the green box.
+go to the green box then return to the kitchen,navigate_to:green_box; navigate_to:kitchen,0,1,8.464,navigate_to:green_box; return_to_start:; navigate_to:kitchen,Navigating to the green box and then returning to the kitchen.
+check whether there is a blue box in the reading nook,navigate_to:reading_nook; find:blue_box,1,1,7.743,navigate_to:reading_nook; find:blue_box,I'll go to the reading nook and look for the blue box.
+"go to coordinates x 1.5, y -0.5",go_to_pose:,1,1,7.423,go_to_pose:,"Navigating to the coordinates (1.5, -0.5)."
+come back,return_to_start:,1,1,3.487,return_to_start:,Returning to the starting point.
+bring me a coffee,,1,1,4.08,,"I can only drive, turn, search and report - I can't make coffee."
+go to the purple box,,1,2,19.845,,"I could not turn that into a valid plan: step 0: unknown target ""purple_box"". Valid targets: home, kitchen, office, reading_nook, storage, red_box, green_box, blue_box, yellow_box"
+fly to the ceiling,,1,1,3.031,,I can't fly to the ceiling.
+drive 50 metres forward,,0,2,14.408,move:2.0,Driving 50 metres is too far; let's drive 2.0 metres instead.
+go to the garage,,1,1,4.082,,I don't know where the garage is. Is it another place name?

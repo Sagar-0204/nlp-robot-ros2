@@ -1,0 +1,29 @@
+# Named places the robot (and, from stage 4, the LLM) can refer to.
+# pose: [x (m), y (m), yaw (deg)] in the map frame.
+# lookout: true -> visited, in this order, when searching for an object it has not seen yet.
+places:
+  home:
+    pose: [0.0, 0.0, 0.0]
+    description: "Starting dock in the middle of the room"
+    aliases: ["start", "dock", "base", "centre", "center"]
+    lookout: true
+  office:
+    pose: [3.0, 0.3, 0.0]
+    description: "East side of the room"
+    aliases: ["desk", "east side"]
+    lookout: true
+  storage:
+    pose: [2.4, -1.8, -90.0]
+    description: "Small bay in the south-east, behind a partition wall"
+    aliases: ["storage bay", "store room", "south east bay"]
+    lookout: true
+  kitchen:
+    pose: [-3.0, -0.3, 180.0]
+    description: "West side of the room"
+    aliases: ["west side", "pantry"]
+    lookout: true
+  reading_nook:
+    pose: [-2.6, 2.0, 90.0]
+    description: "Small bay in the north-west, behind a partition wall"
+    aliases: ["nook", "library", "north west bay"]
+    lookout: true

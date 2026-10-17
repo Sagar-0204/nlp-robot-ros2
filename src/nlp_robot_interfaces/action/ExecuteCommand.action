@@ -1,0 +1,29 @@
+# One natural-language command, e.g. "go to the red box, then come back".
+#
+# Why an ACTION and not a service: a command can take minutes (driving, searching),
+# the user wants progress while it runs, and must be able to cancel it mid-way.
+# Services give none of that; actions give all three (goal / feedback / result + cancel).
+
+# ---- Goal: what the user asked
+string command
+# true = only parse and validate the command into a plan; do not move the robot
+bool dry_run
+---
+# ---- Result: how it ended
+bool success
+# Human-readable summary: what was done, or why it failed / what needs clarifying
+string message
+# The validated plan that was (or would have been) executed, as JSON
+string plan_json
+# Which language backend produced the plan, e.g. "ollama:qwen2.5:7b-instruct" or "rules"
+string backend
+# Time the language layer took to produce the plan (seconds)
+float32 parse_time_s
+---
+# ---- Feedback: progress while it runs
+# parsing | executing | searching | step_done | done
+string status
+int32 step_index
+int32 total_steps
+# One-line description of the step in progress, e.g. "navigate to kitchen"
+string current_step

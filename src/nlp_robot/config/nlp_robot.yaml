@@ -1,0 +1,41 @@
+# Parameters for the nlp_robot nodes. The launch arguments llm_backend and llm_model
+# override llm.backend / llm.model, so you rarely need to edit this file.
+nlp_commander:
+  ros__parameters:
+    llm:
+      backend: "ollama"          # ollama | anthropic | openai | rules
+      model: ""                  # "" = backend default (ollama: qwen2.5:7b-instruct, anthropic: claude-haiku-5-5)
+      base_url: ""               # "" = backend default; e.g. http://localhost:11434 or an OpenAI-compatible URL
+      api_key_env: ""            # "" = ANTHROPIC_API_KEY / OPENAI_API_KEY
+      temperature: 0.0
+      timeout_s: 180.0
+      warmup: true               # load the model + prompt at startup, not on the first command
+      fallback_backend: "rules"  # used if the main backend fails; "" to disable
+    global_frame: "map"
+    base_frame: "base_footprint"
+    object_standoff_m: 0.6       # stop this far from a box centre
+    object_stage_dist_m: 3.0     # boxes further than this are approached in two stages
+    object_stage_standoff_m: 1.5 # ...the first stage stops this far away, within LiDAR range
+    nav_timeout_s: 180.0
+    colors: ["red", "green", "blue", "yellow"]
+    map_bounds: [-4.0, 4.0, -3.0, 3.0]
+
+# Stage 7: camera (direction) + LiDAR (distance) colour-box detector
+color_detector:
+  ros__parameters:
+    colors: ["red", "green", "blue", "yellow"]
+    global_frame: "map"
+    process_rate_hz: 5.0
+    process_width: 480
+    min_area_px: 120
+    horizontal_fov: 1.02974      # only used if camera_info is missing
+    object_depth_m: 0.30
+    object_height_m: 0.30        # camera-only range = focal_px * height / blob height in px
+    camera_range_fallback: true  # use it when the LiDAR (3.5 m on TB3) has no return
+    max_camera_range_m: 9.0
+    min_hits: 3
+    max_range_m: 6.0
+    max_scan_age_s: 0.3
+    publish_debug: true
+    camera_frame: "camera_rgb_frame"   # fallback if the image's frame_id is not in TF
+    laser_frame: "base_scan"           # fallback if the scan's frame_id is not in TF
