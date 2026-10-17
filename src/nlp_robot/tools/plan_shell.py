@@ -29,7 +29,7 @@ DIM, BOLD, GREEN, RED, CYAN, RESET = '\033[2m', '\033[1m', '\033[32m', '\033[31m
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--backend', default='rules', help='ollama | anthropic | openai | rules')
+    ap.add_argument('--backend', default='rules', help='ollama | gemini | anthropic | openai | rules')
     ap.add_argument('--model', default='')
     ap.add_argument('--base-url', default='')
     ap.add_argument('--fallback', default='rules', help='used if the main backend fails; "" = none')

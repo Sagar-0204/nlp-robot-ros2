@@ -1,27 +1,27 @@
-command,expected,correct,attempts,latency_s,plan,reply,llm_reply
-"go to the red box, then come back",navigate_to:red_box; return_to_start:,1,1,0.001,navigate_to:red_box; return_to_start:,"I'll go to the red box, then come back.","OK: go to the red box, then come back"
-drive over to the kitchen,navigate_to:kitchen,0,1,0.0,,"Sorry, I could not understand ""drive over to the kitchen"".",
-head to the dock,navigate_to:home,1,1,0.0,navigate_to:home,I'll go to home.,OK: head to the dock
-could you please go to the storage bay?,navigate_to:storage,0,1,0.0,,"Sorry, I could not understand ""could you please go to the storage bay?"".",
-take a look in the nook,navigate_to:reading_nook,0,1,0.0,,"Sorry, I could not understand ""take a look in the nook"".",
-find the blue box,find:blue_box,1,1,0.0,find:blue_box,I'll look for the blue box.,OK: find the blue box
-where is the yellow cube? go there,navigate_to:yellow_box,0,1,0.0,,"Sorry, I could not understand ""where is the yellow cube? go there"".",
-find the green box and go to it,navigate_to:green_box,1,1,0.0,find:green_box; navigate_to:green_box,"I'll look for the green box, then go to the green box.",OK: find the green box and go to it
-turn left,rotate:90,1,1,0.0,rotate:90.0,I'll turn left 90 degrees.,OK: turn left
-turn right by 45 degrees,rotate:-45,1,1,0.0,rotate:-45.0,I'll turn right 45 degrees.,OK: turn right by 45 degrees
-do a full turn,rotate:360,0,1,0.0,,"Sorry, I could not understand ""do a full turn"".",
-turn around and go back 30 cm,rotate:180; move:-0.3,1,1,0.0,rotate:180.0; move:-0.3,"I'll turn left 180 degrees, then move back 0.30 m.",OK: turn around and go back 30 cm
-move forward one metre,move:1.0,0,1,0.0,,"Sorry, I could not understand ""move forward one metre"".",
-"back up a little, half a meter",move:-0.5,0,1,0.0,,"Sorry, I could not understand ""back up a little"".",
-wait five seconds then go home,wait:5; navigate_to:home,0,1,0.0,,"Sorry, I could not understand ""wait five seconds"".",
-"go to the office, wait 2 seconds, then come back",navigate_to:office; wait:2; return_to_start:,1,1,0.0,navigate_to:office; wait:2.0; return_to_start:,"I'll go to the office, then wait 2 s, then come back.","OK: go to the office, wait 2 seconds, then come back"
-visit the red box and then the green box,navigate_to:red_box; navigate_to:green_box,0,1,0.0,,"Sorry, I could not understand ""visit the red box"".",
-go to the green box then return to the kitchen,navigate_to:green_box; navigate_to:kitchen,0,1,0.0,,"Sorry, I could not understand ""return to the kitchen"".",
-check whether there is a blue box in the reading nook,navigate_to:reading_nook; find:blue_box,0,1,0.0,,"Sorry, I could not understand ""check whether there is a blue box in the reading nook"".",
-"go to coordinates x 1.5, y -0.5",go_to_pose:,0,1,0.0,,"Sorry, I could not understand ""y -0.5"".",
-come back,return_to_start:,1,1,0.0,return_to_start:,I'll come back.,OK: come back
-bring me a coffee,,1,1,0.0,,"Sorry, I could not understand ""bring me a coffee"".",
-go to the purple box,,1,1,0.0,,"I could not turn that into a valid plan: step 0: unknown target ""the purple box"". Valid targets: home, kitchen, office, reading_nook, storage, red_box, green_box, blue_box, yellow_box",
-fly to the ceiling,,1,1,0.0,,"Sorry, I could not understand ""fly to the ceiling"".",
-drive 50 metres forward,,1,1,0.0,,"Sorry, I could not understand ""drive 50 metres forward"".",
-go to the garage,,1,1,0.0,,"I could not turn that into a valid plan: step 0: unknown target ""the garage"". Valid targets: home, kitchen, office, reading_nook, storage, red_box, green_box, blue_box, yellow_box",
+command,expected,correct,attempts,latency_s,plan,reply,llm_reply,rate_limit_retries
+"go to the red box, then come back",navigate_to:red_box; return_to_start:,1,1,0.001,navigate_to:red_box; return_to_start:,"I'll go to the red box, then come back.","OK: go to the red box, then come back",0
+drive over to the kitchen,navigate_to:kitchen,0,1,0.0,,"Sorry, I could not understand ""drive over to the kitchen"".",,0
+head to the dock,navigate_to:home,1,1,0.0,navigate_to:home,I'll go to home.,OK: head to the dock,0
+could you please go to the storage bay?,navigate_to:storage,0,1,0.0,,"Sorry, I could not understand ""could you please go to the storage bay?"".",,0
+take a look in the nook,navigate_to:reading_nook,0,1,0.0,,"Sorry, I could not understand ""take a look in the nook"".",,0
+find the blue box,find:blue_box,1,1,0.0,find:blue_box,I'll look for the blue box.,OK: find the blue box,0
+where is the yellow cube? go there,navigate_to:yellow_box,0,1,0.0,,"Sorry, I could not understand ""where is the yellow cube? go there"".",,0
+find the green box and go to it,navigate_to:green_box,1,1,0.0,find:green_box; navigate_to:green_box,"I'll look for the green box, then go to the green box.",OK: find the green box and go to it,0
+turn left,rotate:90,1,1,0.0,rotate:90.0,I'll turn left 90 degrees.,OK: turn left,0
+turn right by 45 degrees,rotate:-45,1,1,0.0,rotate:-45.0,I'll turn right 45 degrees.,OK: turn right by 45 degrees,0
+do a full turn,rotate:360,0,1,0.0,,"Sorry, I could not understand ""do a full turn"".",,0
+turn around and go back 30 cm,rotate:180; move:-0.3,1,1,0.0,rotate:180.0; move:-0.3,"I'll turn left 180 degrees, then move back 0.30 m.",OK: turn around and go back 30 cm,0
+move forward one metre,move:1.0,0,1,0.0,,"Sorry, I could not understand ""move forward one metre"".",,0
+"back up a little, half a meter",move:-0.5,0,1,0.0,,"Sorry, I could not understand ""back up a little"".",,0
+wait five seconds then go home,wait:5; navigate_to:home,0,1,0.0,,"Sorry, I could not understand ""wait five seconds"".",,0
+"go to the office, wait 2 seconds, then come back",navigate_to:office; wait:2; return_to_start:,1,1,0.0,navigate_to:office; wait:2.0; return_to_start:,"I'll go to the office, then wait 2 s, then come back.","OK: go to the office, wait 2 seconds, then come back",0
+visit the red box and then the green box,navigate_to:red_box; navigate_to:green_box,0,1,0.0,,"Sorry, I could not understand ""visit the red box"".",,0
+go to the green box then return to the kitchen,navigate_to:green_box; navigate_to:kitchen,0,1,0.0,,"Sorry, I could not understand ""return to the kitchen"".",,0
+check whether there is a blue box in the reading nook,navigate_to:reading_nook; find:blue_box,0,1,0.0,,"Sorry, I could not understand ""check whether there is a blue box in the reading nook"".",,0
+"go to coordinates x 1.5, y -0.5",go_to_pose:,0,1,0.0,,"Sorry, I could not understand ""y -0.5"".",,0
+come back,return_to_start:,1,1,0.0,return_to_start:,I'll come back.,OK: come back,0
+bring me a coffee,,1,1,0.0,,"Sorry, I could not understand ""bring me a coffee"".",,0
+go to the purple box,,1,1,0.0,,"I could not turn that into a valid plan: step 0: unknown target ""the purple box"". Valid targets: home, kitchen, office, reading_nook, storage, red_box, green_box, blue_box, yellow_box",,0
+fly to the ceiling,,1,1,0.0,,"Sorry, I could not understand ""fly to the ceiling"".",,0
+drive 50 metres forward,,1,1,0.0,,"Sorry, I could not understand ""drive 50 metres forward"".",,0
+go to the garage,,1,1,0.0,,"I could not turn that into a valid plan: step 0: unknown target ""the garage"". Valid targets: home, kitchen, office, reading_nook, storage, red_box, green_box, blue_box, yellow_box",,0

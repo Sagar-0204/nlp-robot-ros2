@@ -3,10 +3,10 @@
 nlp_commander:
   ros__parameters:
     llm:
-      backend: "ollama"          # ollama | anthropic | openai | rules
-      model: ""                  # "" = backend default (ollama: qwen2.5:7b-instruct, anthropic: claude-haiku-5-5)
+      backend: "ollama"          # ollama | gemini | anthropic | openai | rules
+      model: ""                  # "" = backend default (ollama: qwen2.5:7b-instruct, gemini: gemini-3.8-flash, anthropic: claude-haiku-5-5)
       base_url: ""               # "" = backend default; e.g. http://localhost:11434 or an OpenAI-compatible URL
-      api_key_env: ""            # "" = ANTHROPIC_API_KEY / OPENAI_API_KEY
+      api_key_env: ""            # "" = GEMINI_API_KEY / ANTHROPIC_API_KEY / OPENAI_API_KEY
       temperature: 0.0
       timeout_s: 180.0
       warmup: true               # load the model + prompt at startup, not on the first command

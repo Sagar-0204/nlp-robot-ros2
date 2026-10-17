@@ -1,0 +1,27 @@
+command,expected,correct,attempts,latency_s,plan,reply,llm_reply,rate_limit_retries
+"go to the red box, then come back",navigate_to:red_box; return_to_start:,1,1,2.003,navigate_to:red_box; return_to_start:,"I'll go to the red box, then come back.","Going to the red box, then returning.",0
+drive over to the kitchen,navigate_to:kitchen,1,1,1.653,navigate_to:kitchen,I'll go to the kitchen.,Driving over to the kitchen.,0
+head to the dock,navigate_to:home,1,1,1.32,navigate_to:home,I'll go to home.,Heading to the dock.,0
+could you please go to the storage bay?,navigate_to:storage,1,1,1.532,navigate_to:storage,I'll go to the storage.,Going to the storage bay.,0
+take a look in the nook,navigate_to:reading_nook,1,1,1.34,navigate_to:reading_nook,I'll go to the reading nook.,Going to the reading nook.,0
+find the blue box,find:blue_box,1,1,1.657,find:blue_box,I'll look for the blue box.,Searching for the blue box.,0
+where is the yellow cube? go there,navigate_to:yellow_box,1,1,1.572,find:yellow_box; navigate_to:yellow_box,"I'll look for the yellow box, then go to the yellow box.",Searching for the yellow box and going to it.,0
+find the green box and go to it,navigate_to:green_box,1,1,1.46,find:green_box; navigate_to:green_box,"I'll look for the green box, then go to the green box.",Searching for the green box and then going to it.,0
+turn left,rotate:90,1,1,1.454,rotate:90.0,I'll turn left 90 degrees.,Turning left 90 degrees.,0
+turn right by 45 degrees,rotate:-45,1,1,1.008,rotate:-45.0,I'll turn right 45 degrees.,Turning right 45 degrees.,0
+do a full turn,rotate:360,1,1,1.256,rotate:360.0,I'll turn left 360 degrees.,Doing a full 360-degree turn.,0
+turn around and go back 30 cm,rotate:180; move:-0.3,1,1,1.377,rotate:180.0; move:-0.3,"I'll turn left 180 degrees, then move back 0.30 m.",Turning around 180 degrees and backing up 0.3 m.,0
+move forward one metre,move:1.0,1,1,0.946,move:1.0,I'll move forward 1.00 m.,Moving forward one metre.,0
+"back up a little, half a meter",move:-0.5,1,1,1.66,move:-0.5,I'll move back 0.50 m.,Backing up 0.5 metres.,0
+wait five seconds then go home,wait:5; navigate_to:home,1,1,1.662,wait:5.0; navigate_to:home,"I'll wait 5 s, then go to home.","Waiting for five seconds, then going home.",0
+"go to the office, wait 2 seconds, then come back",navigate_to:office; wait:2; return_to_start:,1,1,1.167,navigate_to:office; wait:2.0; return_to_start:,"I'll go to the office, then wait 2 s, then come back.","Going to the office, waiting 2 seconds, and then returning.",0
+visit the red box and then the green box,navigate_to:red_box; navigate_to:green_box,1,1,1.555,navigate_to:red_box; navigate_to:green_box,"I'll go to the red box, then go to the green box.",Visiting the red box and then searching for and navigating to the green box.,0
+go to the green box then return to the kitchen,navigate_to:green_box; navigate_to:kitchen,1,1,1.521,navigate_to:green_box; navigate_to:kitchen,"I'll go to the green box, then go to the kitchen.","Going to the green box, then heading to the kitchen.",0
+check whether there is a blue box in the reading nook,navigate_to:reading_nook; find:blue_box,1,1,1.223,navigate_to:reading_nook; find:blue_box,"I'll go to the reading nook, then look for the blue box.",I'll go to the reading nook and check for the blue box.,0
+"go to coordinates x 1.5, y -0.5",go_to_pose:,1,1,1.381,go_to_pose:,"I'll drive to (1.5, -0.5).","Going to coordinates x 1.5, y -0.5.",0
+come back,return_to_start:,1,1,1.453,return_to_start:,I'll come back.,Returning to start.,0
+bring me a coffee,,1,1,1.095,,"I can only drive, turn, search and report - I can't bring you coffee.",,0
+go to the purple box,,1,1,1.182,,"I can only detect red, green, blue, and yellow boxes.",,0
+fly to the ceiling,,1,1,1.32,,"I cannot fly, I can only drive on the floor.",,0
+drive 50 metres forward,,1,1,1.019,,I can move at most 3 m in one go - try a named place instead.,,0
+go to the garage,,1,1,1.495,,"I don't know a place called garage. Did you mean office, storage, kitchen, reading_nook, or home?",,0

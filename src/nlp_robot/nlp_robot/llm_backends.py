@@ -6,6 +6,7 @@ to return JSON matching PLAN_JSON_SCHEMA:
   * anthropic - Claude via the Messages API, using a forced tool call for the schema.
   * openai    - any OpenAI-compatible /chat/completions endpoint (OpenAI, Groq, vLLM,
                 LM Studio, llama.cpp server ...) with response_format json_schema.
+  * gemini    - Google Gemini through that same OpenAI-compatible API (GEMINI_API_KEY).
   * rules     - no LLM at all: a small regex parser. Used for tests and as an
                 offline fallback so a demo never dies because Wi-Fi did.
 
@@ -200,20 +201,36 @@ class AnthropicBackend(LLMBackend):
 
 
 class OpenAICompatBackend(LLMBackend):
+    """Any server that speaks the OpenAI chat-completions API with json_schema output."""
     name = 'openai'
+    DEFAULT_MODEL = ''
+    DEFAULT_URL = 'https://api.openai.com/v1'
+    DEFAULT_KEY_ENV = 'OPENAI_API_KEY'
+    RETRY_STATUS = (429, 500, 502, 503)   # rate limited / temporarily unavailable
+    RETRIES = 3
 
-    def __init__(self, model='', base_url='https://api.openai.com/v1',
-                 api_key_env='OPENAI_API_KEY', temperature=0.0, timeout_s=30.0, **_):
-        if not model:
-            raise BackendError('set llm.model for the openai backend')
-        self.model, self.base_url = model, base_url.rstrip('/')
-        self.api_key = os.environ.get(api_key_env, '')
+    def __init__(self, model='', base_url='', api_key_env='', temperature=0.0, timeout_s=60.0,
+                 **_):
+        self.model = model or self.DEFAULT_MODEL
+        if not self.model:
+            raise BackendError(f'set llm.model for the {self.name} backend')
+        self.base_url = (base_url or self.DEFAULT_URL).rstrip('/')
+        self.api_key_env = api_key_env or self.DEFAULT_KEY_ENV
+        self.api_key = os.environ.get(self.api_key_env, '')
         self.temperature, self.timeout_s = temperature, timeout_s
+        self.retries_used = 0      # rate-limit retries in the last call (for evaluation)
 
     def describe(self):
-        return f'openai:{self.model}@{self.base_url}'
+        return f'{self.name}:{self.model}'
+
+    def check(self):
+        if not self.api_key:
+            return False, f'environment variable {self.api_key_env} is not set'
+        return True, 'ready'
 
     def complete(self, system, user, schema):
+        if not self.api_key:
+            raise BackendError(f'environment variable {self.api_key_env} is not set')
         body = {
             'model': self.model,
             'temperature': self.temperature,
@@ -222,14 +239,46 @@ class OpenAICompatBackend(LLMBackend):
             'response_format': {'type': 'json_schema',
                                 'json_schema': {'name': 'robot_plan', 'schema': schema}},
         }
-        headers = {'Authorization': f'Bearer {self.api_key}'} if self.api_key else {}
+        headers = {'Authorization': f'Bearer {self.api_key}'}
+        self.retries_used = 0
+        for attempt in range(self.RETRIES + 1):
+            try:
+                r = requests.post(f'{self.base_url}/chat/completions', json=body,
+                                  headers=headers, timeout=self.timeout_s)
+            except requests.Timeout as e:
+                raise BackendError(f'{self.name} took longer than {self.timeout_s:.0f} s') from e
+            except requests.RequestException as e:
+                raise BackendError(f'{self.name} request failed: {e}') from e
+            if r.status_code in self.RETRY_STATUS and attempt < self.RETRIES:
+                # Free tiers allow only a few requests per minute: wait and try again.
+                try:
+                    wait = float(r.headers.get('Retry-After', ''))
+                except ValueError:
+                    wait = 5.0 * 2 ** attempt
+                self.retries_used += 1
+                time.sleep(min(wait, 60.0))
+                continue
+            break
+        if not r.ok:
+            raise BackendError(f'{self.name} error {r.status_code}: {r.text[:300]}')
         try:
-            r = requests.post(f'{self.base_url}/chat/completions', json=body, headers=headers,
-                              timeout=self.timeout_s)
-            r.raise_for_status()
-        except requests.RequestException as e:
-            raise BackendError(f'OpenAI-compatible request failed: {e}') from e
-        return _extract_json(r.json()['choices'][0]['message']['content'])
+            content = r.json()['choices'][0]['message']['content']
+        except (ValueError, KeyError, IndexError, TypeError) as e:
+            raise BackendError(f'unexpected {self.name} response: {r.text[:300]}') from e
+        return _extract_json(content or '')
+
+
+class GeminiBackend(OpenAICompatBackend):
+    """Google Gemini through its OpenAI-compatible endpoint. Key: GEMINI_API_KEY.
+    Models (Oct 2026): gemini-3.8-flash (default), gemini-3.5-flash-lite (smaller, faster)."""
+    name = 'gemini'
+    DEFAULT_MODEL = 'gemini-3.8-flash'
+    DEFAULT_URL = 'https://generativelanguage.googleapis.com/v1beta/openai'
+    DEFAULT_KEY_ENV = 'GEMINI_API_KEY'
+
+    def __init__(self, timeout_s=120.0, **kw):
+        # The free tier sometimes queues a request for most of a minute before answering.
+        super().__init__(timeout_s=timeout_s, **kw)
 
 
 _NUM = r'(-?\d+(?:\.\d+)?)'
@@ -296,6 +345,7 @@ BACKENDS = {
     'ollama': OllamaBackend,
     'anthropic': AnthropicBackend,
     'openai': OpenAICompatBackend,
+    'gemini': GeminiBackend,
     'rules': RuleBackend,
 }
 

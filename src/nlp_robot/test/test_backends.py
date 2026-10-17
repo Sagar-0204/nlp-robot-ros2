@@ -15,6 +15,7 @@ PLAN = {'reply': 'ok', 'steps': [{'action': 'navigate_to', 'target': 'red_box'}]
 
 class FakeResp:
     status_code, ok, text = 200, True, ""
+    headers = {}
 
     def __init__(self, payload):
         self.payload = payload
@@ -65,7 +66,8 @@ def test_anthropic_needs_key(monkeypatch):
         B.AnthropicBackend().complete('s', 'u', PLAN_JSON_SCHEMA)
 
 
-def test_openai_compat(capture):
+def test_openai_compat(capture, monkeypatch):
+    monkeypatch.setenv('OPENAI_API_KEY', 'k')
     calls = capture({'choices': [{'message': {'content': '```json\n' + json.dumps(PLAN) + '\n```'}}]})
     out = B.OpenAICompatBackend(model='x', base_url='http://localhost:8000/v1').complete(
         's', 'u', PLAN_JSON_SCHEMA)
@@ -167,3 +169,45 @@ def test_fallback_is_reported():
     ctx = WorldContext(places={'home': {'pose': [0, 0, 0]}})
     r = CommandParser(Dead(), lambda: ctx, fallback=B.RuleBackend()).parse('go home')
     assert r.ok and r.backend == 'rules' and 'no model' in r.fallback_reason
+
+
+# ---------------------------------------------------------------- Gemini (cloud)
+def test_gemini_defaults(capture, monkeypatch):
+    monkeypatch.setenv('GEMINI_API_KEY', 'g-key')
+    calls = capture({'choices': [{'message': {'content': json.dumps(PLAN)}}]})
+    be = B.make_backend('gemini', model='', base_url='', api_key_env='')
+    assert be.describe() == 'gemini:gemini-3.8-flash' and be.check() == (True, 'ready')
+    assert be.complete('s', 'u', PLAN_JSON_SCHEMA) == PLAN
+    assert calls['url'] == ('https://generativelanguage.googleapis.com/v1beta/openai'
+                            '/chat/completions')
+    assert calls['headers']['Authorization'] == 'Bearer g-key'
+    assert calls['body']['response_format']['json_schema']['schema'] == PLAN_JSON_SCHEMA
+
+
+def test_gemini_needs_key(monkeypatch):
+    monkeypatch.delenv('GEMINI_API_KEY', raising=False)
+    be = B.GeminiBackend()
+    assert not be.check()[0] and 'GEMINI_API_KEY' in be.check()[1]
+    with pytest.raises(B.BackendError, match='GEMINI_API_KEY'):
+        be.complete('s', 'u', PLAN_JSON_SCHEMA)
+
+
+class Resp429(FakeResp):
+    status_code, ok, text = 429, False, '{"error": "quota"}'
+    headers = {'Retry-After': '0'}
+
+
+def test_rate_limit_is_retried(monkeypatch):
+    monkeypatch.setenv('GEMINI_API_KEY', 'k')
+    replies = [Resp429({}), Resp429({}),
+               FakeResp({'choices': [{'message': {'content': json.dumps(PLAN)}}]})]
+    monkeypatch.setattr(B.requests, 'post', lambda *a, **k: replies.pop(0))
+    be = B.GeminiBackend()
+    assert be.complete('s', 'u', PLAN_JSON_SCHEMA) == PLAN and be.retries_used == 2
+
+
+def test_persistent_error_shows_server_message(monkeypatch):
+    monkeypatch.setenv('GEMINI_API_KEY', 'k')
+    monkeypatch.setattr(B.requests, 'post', lambda *a, **k: Resp429({}))
+    with pytest.raises(B.BackendError, match='quota'):
+        B.GeminiBackend().complete('s', 'u', PLAN_JSON_SCHEMA)

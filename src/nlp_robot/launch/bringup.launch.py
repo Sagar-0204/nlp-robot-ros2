@@ -51,7 +51,7 @@ def generate_launch_description():
     ld.add_action(DeclareLaunchArgument('stack', default_value='true',
                                         description='Start the language layer (commander)'))
     ld.add_action(DeclareLaunchArgument('llm_backend', default_value='ollama',
-                                        description='ollama | anthropic | openai | rules'))
+                                        description='ollama | gemini | anthropic | openai | rules'))
     ld.add_action(DeclareLaunchArgument('llm_model', default_value='',
                                         description='empty = backend default (qwen2.5:7b-instruct)'))
     return ld

@@ -26,7 +26,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
         DeclareLaunchArgument('llm_backend', default_value='ollama',
-                              description='ollama | anthropic | openai | rules'),
+                              description='ollama | gemini | anthropic | openai | rules'),
         DeclareLaunchArgument('llm_model', default_value='',
                               description='e.g. qwen2.5:7b-instruct; empty = backend default'),
         DeclareLaunchArgument('places_file',

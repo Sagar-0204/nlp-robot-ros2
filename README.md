@@ -6,7 +6,7 @@ carries it out, and a camera + LiDAR detector finds "the red box". The LLM never
 motor commands, and every plan is checked before the robot moves.
 
 **Stack:** Ubuntu 24.04 · ROS 2 Jazzy · Gazebo Harmonic · Nav2 · TurtleBot3 waffle · Python ·
-OpenCV · Ollama (local LLM: Qwen2.5 7B / 3B) or a cloud LLM (Anthropic / OpenAI-compatible)
+OpenCV · Ollama (local LLM: Qwen2.5 7B / 3B) or a cloud LLM (Google Gemini, Anthropic, any OpenAI-compatible API)
 
 ## Results
 
@@ -16,6 +16,7 @@ OpenCV · Ollama (local LLM: Qwen2.5 7B / 3B) or a cloud LLM (Anthropic / OpenAI
 | Qwen2.5-7B, first prompt (v1) | 20/25 | 4/5 | - |
 | **Qwen2.5-7B, final (v3)** | **26/26** | **5/5** | **2.9 s** (RTX 3050 Laptop GPU, 4 GB) |
 | Qwen2.5-3B, final (v3) | 20/26 | 3/5 | 0.5 s |
+| **Gemini 3.5 Flash-Lite (cloud), final (v3)** | **26/26** | **5/5** | **1.4 s** |
 
 <p>
   <img src="results/figures/accuracy_by_version.png" width="49%" alt="Accuracy by version">
@@ -27,6 +28,9 @@ OpenCV · Ollama (local LLM: Qwen2.5 7B / 3B) or a cloud LLM (Anthropic / OpenAI
 - Estimating distance from the camera where the 3.5 m LiDAR can't reach cut
   "go to the red box" from **132 s to 19 s**.
 - Ctrl+C stops the robot mid-command; refused commands ("bring me a coffee") never move it.
+- Local or cloud is one launch argument (`llm_backend:=ollama` / `gemini`). The free-tier
+  cloud ran out of quota mid-evaluation, and any backend failure falls back to a rule parser
+  instead of leaving the robot without a plan.
 
 Full write-up with failure analysis, safety design and limitations:
 **[docs/RESULTS.md](docs/RESULTS.md)**

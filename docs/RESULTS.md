@@ -10,7 +10,7 @@ Vidya Sagar, IIT Hyderabad, M.Tech RIS. All numbers below were measured on this 
 |---|---|
 | Robot / simulator | TurtleBot3 waffle in Gazebo Harmonic, ROS 2 Jazzy, Nav2 (AMCL + NavFn + DWB) on a map generated from the same spec as the world |
 | Language layer | LLM → JSON plan restricted to 8 actions → validator → Nav2 actions (`plan_schema.py`, `command_parser.py`) |
-| Models | `qwen2.5:7b-instruct` and `qwen2.5:3b-instruct` via Ollama (Q4 quantised); a regex parser as the baseline |
+| Models | Local: `qwen2.5:7b-instruct` and `qwen2.5:3b-instruct` via Ollama (Q4 quantised). Cloud: `gemini-3.5-flash-lite` and `gemini-3.8-flash` via Google's OpenAI-compatible API (free tier). A regex parser as the baseline |
 | Hardware | Intel Alder Lake laptop, 16 GB RAM, RTX 3050 Laptop GPU (4 GB) |
 | Test set | 26 commands (`tools/eval_parser.py`): 21 the robot can carry out (paraphrases, number words, signed turns and moves, multi-step, coordinates, pronouns) and 5 it must refuse (impossible, unknown object or place, beyond the limits) |
 | Grading | A plan is correct if its actions and targets match the expected plan, with numbers having the same sign and within 10 %. `find X` followed by `navigate_to X` counts as `navigate_to X`, since the robot does the same thing. A refusal is correct only if the plan is empty. |
@@ -62,13 +62,15 @@ v2 → v3 fix that moved from the prompt into the validator became a guarantee r
 a suggestion. The v2 prompt rule for "return to <place>" still failed; the v3 validator
 check catches it every time.
 
-## 3. Model size and hardware
+## 3. Model size, hardware and local vs cloud
 
 | Model (v3 prompt) | Runs on | Accuracy | Correct refusals | Median latency |
 |---|---|---|---|---|
 | qwen2.5:7b-instruct | CPU | 26/26 | 5/5 | 5.05 s |
 | qwen2.5:7b-instruct | 53 % GPU / 47 % CPU | 26/26 | 5/5 | **2.91 s** |
 | qwen2.5:3b-instruct | 100 % GPU | 20/26 | 3/5 | **0.49 s** |
+| gemini-3.5-flash-lite | cloud (Google, free tier) | **26/26** | **5/5** | **1.42 s** |
+| gemini-3.8-flash | cloud (Google, free tier) | 17/17 answered; 9 never answered (quota / timeout) | — | 5.98 s (of the answered) |
 
 ![Speed vs accuracy](../results/figures/speed_vs_accuracy.png)
 
@@ -89,6 +91,28 @@ that it means what was asked.** Every 3B plan above is valid (known targets, wit
 limits), so no check can reject it. Whether the plan matches the user's intent comes from
 the model's capability. The 7B is the default; the 3B is the option when speed matters
 more than reliability.
+
+### Local vs cloud
+
+The same prompt, validator and test set run unchanged on Google's Gemini through its
+OpenAI-compatible API: the backend is one launch argument (`llm_backend:=gemini`).
+
+- **The small cloud model matched the best local result, and was faster.**
+  `gemini-3.5-flash-lite` planned all 26 commands correctly (5/5 refusals, no repairs) at
+  a median of 1.42 s, against 2.91 s for the local 7B on a 4 GB laptop GPU and 77 % for
+  the local 3B at 0.49 s. Model capability, not size on disk, decides correctness: a hosted
+  small model is a different model from a local small model.
+- **The larger cloud model ran into the free tier's limits.** `gemini-3.8-flash` answered
+  17 commands, all correctly, but its latency varied from 4 s to 58 s, one request timed
+  out, and the daily quota then ran out (`429 You exceeded your current quota`), so the last
+  9 commands never got an answer.
+
+**Finding 5: the cloud adds availability risks that a local model doesn't have**: network,
+quotas, rate limits and variable queueing. On a robot, a quota error mid-mission means no
+plan at all. The design handles this. Every backend error falls through to the rule-based
+parser, the robot says it is using the fallback, and nothing unvalidated ever moves it.
+But a vehicle-grade system would still want a local model as the primary planner, or at
+least as a fallback, with the cloud used when it is available.
 
 The 3B run also exposed a UI bug: after a repair, the plan was `rotate -45` but the
 model's reply still said "Turning left 45 degrees". Since then, the robot's reply is
@@ -160,6 +184,8 @@ the nook. Once a box has been seen, later commands use the remembered position
 
 - **Small test set.** 26 hand-written commands in one room. 100 % here doesn't mean
   100 % on real users' phrasing.
+- **Free-tier cloud measurements.** Gemini latencies include shared free-tier queueing, and
+  the `gemini-3.8-flash` run is incomplete (quota). A paid tier would give cleaner numbers.
 - **Deterministic runs.** The model ran at temperature 0, one run per configuration;
   results may vary across model versions and quantisations.
 - **Correct intent isn't guaranteed.** See finding 3. A larger model, or a second LLM
@@ -191,6 +217,10 @@ python3 -m pytest test/ -q                                           # unit test
 python3 tools/eval_parser.py --backend rules
 python3 tools/eval_parser.py --backend ollama --model qwen2.5:7b-instruct --label v3
 python3 tools/eval_parser.py --backend ollama --model qwen2.5:3b-instruct --label v3-gpu
+export GEMINI_API_KEY=...                                            # cloud (aistudio.google.com/apikey)
+python3 tools/eval_parser.py --backend gemini --model gemini-3.5-flash-lite --label v3 --delay 6
+python3 tools/eval_parser.py --backend gemini --label v3 --delay 15 \
+    --resume ../../results/eval_gemini_default_v3.csv               # finish the quota-limited run
 python3 tools/summarize_results.py                                   # table + figures
 
 ros2 launch nlp_robot bringup.launch.py                              # whole system

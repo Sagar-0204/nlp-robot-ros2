@@ -32,6 +32,8 @@ WHERE = {
     ('qwen2.5:3b-instruct', 'v3-gpu'): '100 % GPU',
 }
 
+CLOUD = {'gemini': 'cloud (Google)', 'anthropic': 'cloud (Anthropic)', 'openai': 'cloud'}
+
 BLUE, INK, MUTED, GRID, SURFACE = '#2a78d6', '#0b0b0b', '#52514e', '#e4e3df', '#fcfcfb'
 
 
@@ -43,21 +45,27 @@ def load(path):
         rows = list(csv.DictReader(f))
     pos = [r for r in rows if r['command'] not in REFUSALS]
     neg = [r for r in rows if r['command'] in REFUSALS]
-    lat = [float(r['latency_s']) for r in rows]
+    errors = sum(r['reply'].startswith('No language backend available') for r in rows)
+    lat = [float(r['latency_s']) for r in rows
+           if not r['reply'].startswith('No language backend available')] or [0.0]
     model = model.replace('qwen2.5-', 'qwen2.5:') if backend == 'ollama' else model
+    if backend == 'gemini' and model == 'default':      # files from before the naming fix
+        model = 'gemini-3.8-flash'
     return dict(
         file=os.path.basename(path), backend=backend, model=model, label=label,
         name=('rules (regex baseline)' if backend == 'rules' else f'{model} {label}'.strip()),
-        where=('-' if backend == 'rules' else WHERE.get((model, label), 'CPU')),
+        where=('-' if backend == 'rules' else CLOUD.get(backend)
+               or WHERE.get((model, label), 'CPU')),
         n=len(rows), correct=sum(int(r['correct']) for r in rows),
         plans=(sum(int(r['correct']) for r in pos), len(pos)),
         refusals=(sum(int(r['correct']) for r in neg), len(neg)),
-        repairs=sum(int(r['attempts']) > 1 for r in rows),
+        repairs=sum(int(r['attempts']) > 1 for r in rows), errors=errors,
         median=statistics.median(lat), maxlat=max(lat))
 
 
 def order(run):
-    return (run['backend'] != 'rules', 'gpu' in run['label'], run['label'], run['model'])
+    return (run['backend'] != 'rules', run['backend'] in CLOUD, 'gpu' in run['label'],
+            run['label'], run['model'])
 
 
 def table(runs):
@@ -65,8 +73,10 @@ def table(runs):
            '| Median latency |',
            '|---|---|---|---|---|---|---|']
     for r in runs:
-        out.append(f"| {r['name']} | {r['where']} | {r['correct']}/{r['n']} "
-                   f"({100 * r['correct'] / r['n']:.0f} %) | {r['plans'][0]}/{r['plans'][1]} "
+        acc = (f"{r['correct']}/{r['n']} ({100 * r['correct'] / r['n']:.0f} %)" if not r['errors']
+               else f"{r['correct']}/{r['n'] - r['errors']} answered; {r['errors']} not run "
+                    f"(quota/timeout)")
+        out.append(f"| {r['name']} | {r['where']} | {acc} | {r['plans'][0]}/{r['plans'][1]} "
                    f"| {r['refusals'][0]}/{r['refusals'][1]} | {r['repairs']} "
                    f"| {r['median']:.2f} s |")
     return '\n'.join(out)
@@ -123,7 +133,7 @@ def plots(runs, outdir):
     plt.close(fig)
 
     # 2. Speed vs accuracy: same v3 prompt, different model / hardware
-    v3 = [r for r in runs if r['label'].startswith('v3')]
+    v3 = [r for r in runs if r['label'].startswith('v3') and not r['errors']]   # complete runs
     fig, ax = plt.subplots(figsize=(7, 4.2))
     _style(ax)
     ax.xaxis.grid(True, color=GRID, linewidth=0.8)
@@ -131,26 +141,33 @@ def plots(runs, outdir):
         acc = 100 * r['correct'] / r['n']
         ax.scatter(r['median'], acc, s=110, color=BLUE, edgecolor=SURFACE, linewidth=2,
                    zorder=3)
-        size = '7B' if '7b' in r['model'] else '3B'
-        hw = 'GPU' if 'gpu' in r['label'] else 'CPU'
-        if size == '7B' and hw == 'GPU':
-            hw = '53 % GPU'
-        # labels go below the two 100 % points (one each side) so they never collide
-        dx, dy, ha = {('7B', '53 % GPU'): (-10, -34, 'right'),
-                      ('7B', 'CPU'): (10, -34, 'left')}.get((size, hw), (12, -4, 'left'))
+        if r['backend'] in CLOUD:
+            size, hw = r['model'], 'cloud'
+        else:
+            size = '7B' if '7b' in r['model'] else '3B'
+            hw = 'GPU' if 'gpu' in r['label'] else 'CPU'
+            if size == '7B' and hw == 'GPU':
+                hw = '53 % GPU'
+        # labels go below the 100 % points, staggered so they never collide
+        dx, dy, ha = {('7B', '53 % GPU'): (10, -34, 'left'),
+                      ('7B', 'CPU'): (10, -66, 'left')}.get((size, hw), (12, -4, 'left'))
+        if hw == 'cloud':
+            dx, dy, ha = (-10, -34, 'right') if acc > 90 else (12, -4, 'left')
         ax.annotate(f"{size}, {hw}\n{r['correct']}/{r['n']} · {r['median']:.1f} s",
                     (r['median'], acc), textcoords='offset points', xytext=(dx, dy), ha=ha,
                     color=INK, fontsize=10)
     ax.set_xscale('log')
-    ax.set_xlim(0.3, 12)
+    ax.set_xlim(0.3, max(12, max(r['median'] for r in v3) * 1.6))
     ax.set_xticks([0.5, 1, 2, 5, 10])
     ax.set_xticklabels(['0.5 s', '1 s', '2 s', '5 s', '10 s'])
     ax.set_ylim(60, 105)
     ax.set_yticks([60, 70, 80, 90, 100])
     ax.set_yticklabels([f'{t} %' for t in (60, 70, 80, 90, 100)])
     ax.set_xlabel('Median time to plan one command (log scale)')
-    _titles(fig, 'Faster model, more wrong plans',
-            'Same v3 prompt and validator; qwen2.5 7B vs 3B, RTX 3050 Laptop GPU (4 GB)')
+    cloud = any(r['backend'] in CLOUD for r in v3)
+    _titles(fig, 'Speed vs accuracy: local and cloud models',
+            'Same v3 prompt and validator; local qwen2.5 7B / 3B on an RTX 3050 Laptop GPU (4 GB)'
+            + (' vs cloud' if cloud else ''))
     fig.tight_layout(rect=(0, 0, 1, 0.84))
     fig.savefig(os.path.join(outdir, 'speed_vs_accuracy.png'), dpi=160)
     plt.close(fig)

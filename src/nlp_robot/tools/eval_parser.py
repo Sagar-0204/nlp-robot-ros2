@@ -5,6 +5,7 @@
     python3 tools/eval_parser.py --backend ollama --model qwen2.5:7b-instruct
     python3 tools/eval_parser.py --backend ollama --model qwen2.5:3b-instruct
     ANTHROPIC_API_KEY=... python3 tools/eval_parser.py --backend anthropic
+    GEMINI_API_KEY=...    python3 tools/eval_parser.py --backend gemini --delay 6   # free tier
 
     # compare against an earlier run (prints FIXED / BROKEN per command)
     python3 tools/eval_parser.py --backend ollama --label v2 \\
@@ -20,6 +21,7 @@ import csv
 import os
 import statistics
 import sys
+import time
 
 PKG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WS = os.path.dirname(os.path.dirname(PKG))
@@ -69,6 +71,11 @@ CASES = [
     ('drive 50 metres forward', []),
     ('go to the garage', []),
 ]
+
+
+BACKEND_ERROR = 'No language backend available'
+FIELDS = ['command', 'expected', 'correct', 'attempts', 'latency_s', 'plan', 'reply', 'llm_reply',
+          'rate_limit_retries']
 
 
 def _collapse(steps):
@@ -126,12 +133,18 @@ def compare(rows, path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--backend', default='rules', help='ollama | anthropic | openai | rules')
+    ap.add_argument('--backend', default='rules', help='ollama | gemini | anthropic | openai | rules')
     ap.add_argument('--model', default='')
     ap.add_argument('--base-url', default='')
     ap.add_argument('--label', default='', help='tag for this run, e.g. v1, v2, prompt-b')
     ap.add_argument('--out', default='', help='CSV path (default: <workspace>/results/...)')
     ap.add_argument('--compare', default='', help='earlier CSV to compare against')
+    ap.add_argument('--resume', default='',
+                    help='earlier CSV of the SAME backend/model: keep its results and rerun only '
+                         'the commands that hit a backend error (timeout, quota)')
+    ap.add_argument('--delay', type=float, default=0.0,
+                    help='seconds to pause between commands (cloud free tiers allow only a few '
+                         'requests per minute); not counted in the latency')
     a = ap.parse_args()
 
     places = load_places(os.path.join(PKG, 'config', 'places.yaml'))
@@ -144,15 +157,34 @@ def main():
     if secs > 0.5 or where:
         print(f'model ready in {secs:.1f} s' + (f' ({where})' if where else ''))
 
-    rows, lat = [], []
+    previous = {}
+    if a.resume:
+        with open(a.resume) as f:
+            previous = {r['command']: r for r in csv.DictReader(f)}
+
+    rows, lat, sent, errors = [], [], 0, 0
     for cmd, expected in CASES:
+        old = previous.get(cmd)
+        if old and not old['reply'].startswith(BACKEND_ERROR):
+            row = {k: old.get(k, '') for k in FIELDS}
+            row.update(correct=int(old['correct']), attempts=int(old['attempts']),
+                       latency_s=float(old['latency_s']),
+                       rate_limit_retries=int(old.get('rate_limit_retries') or 0))
+            rows.append(row)
+            lat.append(row['latency_s'])
+            print(f"KEPT  {'PASS' if row['correct'] else 'FAIL'}  {cmd!r:58} -> {row['plan']}")
+            continue
+        if a.delay and sent:
+            time.sleep(a.delay)
+        sent += 1
         parser = CommandParser(be, lambda: ctx)   # fresh history per case
         r = parser.parse(cmd)
         if not r.backend:          # the backend errored: that is a failure, not a refusal
             good = False
+            errors += 1            # ...and its 0 s "latency" must not count in the timings
         else:
             good = matches(r.steps, expected) if expected else not r.steps
-        lat.append(r.latency_s)
+            lat.append(r.latency_s)
         plan = fmt_plan(r.steps)
         rows.append(dict(command=cmd, expected=fmt_plan([{'action': x, 'target': v}
                                                           if isinstance(v, str) else
@@ -160,7 +192,8 @@ def main():
                                                           for x, v in expected]),
                          correct=int(good), attempts=r.attempts,
                          latency_s=round(r.latency_s, 3), plan=plan, reply=r.reply,
-                         llm_reply=r.llm_reply))
+                         llm_reply=r.llm_reply,
+                         rate_limit_retries=getattr(be, 'retries_used', 0)))
         print(f"{'PASS' if good else 'FAIL'}  {r.latency_s:6.2f}s  {cmd!r:58} -> "
               f"{plan or '(nothing) ' + r.reply}", flush=True)
 
@@ -172,9 +205,18 @@ def main():
     print(f'executable plans  : {sum(r["correct"] for r in pos)}/{len(pos)}')
     print(f'correct refusals  : {sum(r["correct"] for r in neg)}/{len(neg)}')
     print(f'needed a repair   : {sum(r["attempts"] > 1 for r in rows)}')
-    print(f'latency median/max: {statistics.median(lat):.2f}s / {max(lat):.2f}s')
+    if lat:
+        print(f'latency median/max: {statistics.median(lat):.2f}s / {max(lat):.2f}s')
+    errors += sum(1 for r in rows if r['reply'].startswith(BACKEND_ERROR)) - errors
+    if errors:
+        print(f'backend errors    : {errors} command(s) never got an answer (timeout / quota) - '
+              f'counted as FAIL. Rerun them later with --resume <this csv>')
+    retried = sum(1 for r in rows if r['rate_limit_retries'])
+    if retried:
+        print(f'rate limited      : {retried} command(s) had to wait and retry - their latency '
+              f'includes the wait; rerun with a larger --delay for clean timings')
 
-    tag = (a.model or 'default').replace(':', '-').replace('/', '-')
+    tag = (getattr(be, 'model', '') or a.model or 'default').replace(':', '-').replace('/', '-')
     out = a.out or os.path.join(WS, 'results',
                                 f'eval_{a.backend}_{tag}' + (f'_{a.label}' if a.label else '')
                                 + '.csv')
