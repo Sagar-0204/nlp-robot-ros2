@@ -52,7 +52,7 @@ sudo apt install ros-jazzy-navigation2 ros-jazzy-nav2-bringup ros-jazzy-turtlebo
      ros-jazzy-turtlebot3-simulations ros-jazzy-ros-gz python3-opencv python3-requests
 curl -fsSL https://ollama.com/install.sh | sh && ollama pull qwen2.5:7b-instruct
 
-git clone <this repo> ~/nlp_robot_ws && cd ~/nlp_robot_ws
+git clone https://github.com/Sagar-0204/nlp-robot-ros2.git ~/nlp_robot_ws && cd ~/nlp_robot_ws
 colcon build --symlink-install && source install/setup.bash
 
 ros2 launch nlp_robot bringup.launch.py        # terminal 1: Gazebo + Nav2 + RViz + LLM commander
