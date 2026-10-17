@@ -237,19 +237,23 @@ python3 tools/eval_parser.py --backend rules
 python3 tools/eval_parser.py --backend ollama --model qwen2.5:7b-instruct --label v3 \
     --compare ../../results/eval_ollama_qwen2.5-7b-instruct_v2.csv
 python3 tools/eval_parser.py --backend ollama --model qwen2.5:3b-instruct --label v3
+GEMINI_API_KEY=... python3 tools/eval_parser.py --backend gemini --model gemini-3.5-flash-lite --label v3 --delay 6
+python3 tools/summarize_results.py            # table + figures from every run in results/
 ```
 
-The first build's result is kept as the baseline in
+The v1 result, from an earlier version of the project, is kept as the baseline in
 `results/eval_ollama_qwen2.5-7b-instruct_v1.csv`.
 
 | Backend | Plans it can carry out | Correct refusals | Median latency |
 |---|---|---|---|
 | `rules` (regex baseline) | 9/21 | 5/5 | 0 s |
-| `qwen2.5:7b-instruct`, v1 prompt (first build) | 16/20 | 4/5 | 15.3 s |
+| `qwen2.5:7b-instruct`, v1 prompt (earlier version) | 16/20 | 4/5 | 15.3 s |
 | `qwen2.5:7b-instruct`, v2 (CPU) | 19/21 | 4/5 | 5.7 s |
 | `qwen2.5:7b-instruct`, v3 (CPU) | **21/21** | **5/5** | 5.1 s |
 | `qwen2.5:7b-instruct`, v3 (53 % GPU) | **21/21** | **5/5** | 2.9 s |
 | `qwen2.5:3b-instruct`, v3 (100 % GPU) | 17/21 | 3/5 | **0.5 s** |
+| `gemini-3.5-flash-lite`, v3 (cloud) | **21/21** | **5/5** | 1.4 s |
+| `gemini-3.8-flash`, v3 (cloud) | 17/17 answered; 9 hit the free-tier quota | — | 6.0 s |
 
 Hardware: Intel Alder Lake laptop, RTX 3050 Laptop GPU (4 GB). The 7B model (5.2 GB) does
 not fit in 4 GB, so Ollama splits it between GPU and CPU; the 3B (1.9 GB) fits entirely.
@@ -402,7 +406,7 @@ publishes `/detected_objects` (`DetectedObjectArray`, in the map frame) at 2 Hz:
 `ground_truth` node draws it in RViz as a wire-frame cube labelled with the detector's
 error, and logs `red_box: true (…), detected (…), error 0.12 m`. The robot never reads it.
 
-In your first build, adding the camera-based distance cut "go to the red box" from home
+In an earlier version of the project, adding the camera-based distance cut "go to the red box" from home
 from **132 s to 19 s**. Set `camera_range_fallback: false` in `config/nlp_robot.yaml` to
 reproduce the slower search as an ablation.
 
